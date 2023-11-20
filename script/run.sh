@@ -95,13 +95,13 @@ set -e
 # Start rapid on each machine
 for HOST in $HOSTS; do
     echo "Launch rapid on $HOST"
-    ssh -f $HOST killall -q rapid\; rapid
+    ssh -f $HOST killall -q rapid\; rapid -a $(hostname)
 done
 
 # Start rapictld
 killall -q rapictld || true
-echo "Launch rapictld with TIMESLICE=$TIMESLICE, HOSTS=$HOSTS"
-$RAPICTLD $TIMESLICE $HOSTS &
+echo "Launch rapictld with TIMESLICE=$TIMESLICE, HOSTS=$HOSTS_CSV"
+$RAPICTLD -t $TIMESLICE -n $HOSTS_CSV &
 rapictld_pid=$!
 
 # Create logfile and write config
