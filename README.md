@@ -62,3 +62,13 @@ Or use file sharing, such as NFS.
     # -x option is to set environment variable for all MPI processes
     mpirun -x LD_PRELOAD=/usr/local/bin/rapi.so mpi_program
     ```
+
+#### Script
+You can use a script for launching rapid, rapictld and MPI program (with rapi).
+```bash
+script/run.sh -h hostfile -t 100 -p example_program
+```
+* Launch rapid on all nodes written on hostfile with systemctl
+* Launch rapictld on current node with timeslice = "-t" option, node = host in hostfile.
+* Launch the specified MPI program with LD_PRELOAD = rapi.so
+
