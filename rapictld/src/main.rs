@@ -1,44 +1,104 @@
-use log::{debug, error};
-use serde::Serialize;
-use std::{env, net::UdpSocket, thread::sleep, time::Duration};
+use clap::Parser;
+use log::debug;
+use serde::{Deserialize, Serialize};
+use simplelog::{Config, LevelFilter, SimpleLogger};
+use std::{mem::size_of, net::UdpSocket, str::FromStr, thread, thread::sleep, time::Duration};
 
-const BIND_ADDR: &str = "0.0.0.0:0";
-const PORT: u16 = 12345;
+const DEFAULT_PORT: u16 = 54321;
+const DEFAULT_TPORT: u16 = 12345;
+const DEFAULT_DLEVEL: &str = "Error";
+
+const BUF_SIZE: usize = size_of::<Data>();
+const BIND_ADDR: &str = "0.0.0.0";
+
 const REQ_STOP: i32 = 2;
 const REQ_CONT: i32 = 3;
 
-#[derive(Serialize, Debug)]
+const FIRST_REQ: Data = Data {
+    req: REQ_STOP,
+    dummy: 0,
+};
+
+#[derive(Parser, Debug)]
+#[command(author, version, about)]
+struct Args {
+    /// Duration (ms) between suspending and resuming job.
+    /// If timeslice < 0, turn off job switching.
+    #[arg(short, long, required = true)]
+    timeslice: i64,
+
+    /// The list of nodes to communicate with rapid.
+    /// Example: "-n localhost", "-n com1,com2", "-n com1 -n com2"
+    #[arg(short, long, required = true, value_delimiter = ',')]
+    nodes: Vec<String>,
+
+    /// Port to bind.
+    #[arg(long, default_value_t = DEFAULT_PORT)]
+    port: u16,
+
+    /// Target port to send request.
+    #[arg(long, default_value_t = DEFAULT_TPORT)]
+    tport: u16,
+
+    /// Debug level.
+    /// One of [Error, Warn, Info, Debug, Trace, Off].
+    #[arg(short, long, default_value_t = String::from(DEFAULT_DLEVEL))]
+    debug: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 struct Data {
     req: i32,
     dummy: i32,
 }
 
-fn main() -> Result<(), ()> {
-    env_logger::init();
-    let args: Vec<String> = env::args().collect();
-    if args.get(1).is_none() || args.get(2).is_none() {
-        error!("TimeSlice or Hostname is missing");
-        error!("{} <TimeSlice (msec)> <Host1> (<Host2> ..)", args[0]);
-        return Err(());
+fn main() {
+    let args = Args::parse();
+    SimpleLogger::init(
+        LevelFilter::from_str(&args.debug).unwrap(),
+        Config::default(),
+    )
+    .unwrap();
+
+    let socket = UdpSocket::bind((BIND_ADDR, args.port)).unwrap();
+    let sender_socket = socket.try_clone().unwrap();
+
+    if args.timeslice > 0 {
+        let duration = Duration::from_millis(args.timeslice.try_into().unwrap());
+        thread::spawn(move || {
+            send_req(sender_socket, duration, &args.nodes, args.tport).unwrap();
+        });
+        recv_req(socket).unwrap();
+    } else {
+        recv_req(socket).unwrap();
     }
-    let time_slice: u64 = args[1].parse().unwrap();
-    let hosts: Vec<&str> = args[2..].iter().map(|arg| arg.as_str()).collect();
-    let mut req = Data {
-        req: REQ_STOP,
-        dummy: 0,
-    };
+}
+
+fn send_req(
+    stream: UdpSocket,
+    duration: Duration,
+    nodes: &[String],
+    tport: u16,
+) -> Result<(), std::io::Error> {
+    let mut req = FIRST_REQ;
     loop {
         let buf = bincode::serialize(&req).unwrap();
-        let stream = UdpSocket::bind(BIND_ADDR).unwrap();
-        for host in hosts.iter() {
-            debug!("send_to: {}, msg: {:?}", host, req);
-            stream.send_to(&buf, (*host, PORT)).unwrap();
+        for host in nodes.iter() {
+            debug!("Send request: {:?} to: {}", req, host);
+            stream.send_to(&buf, (host.as_str(), tport))?;
         }
         reverse_request(&mut req).unwrap();
-        sleep(Duration::from_millis(time_slice));
+        sleep(duration);
     }
+}
 
-    Ok(())
+fn recv_req(stream: UdpSocket) -> Result<(), std::io::Error> {
+    let mut buf: [u8; BUF_SIZE] = [0; BUF_SIZE];
+    loop {
+        stream.recv(&mut buf)?;
+        let req: Data = bincode::deserialize(&buf).unwrap();
+        debug!("Receive request: {:?}", req);
+    }
 }
 
 fn reverse_request(data: &mut Data) -> Result<(), ()> {
