@@ -38,24 +38,26 @@ Or use file sharing, such as NFS.
     ```bash
     # Interval between suspend and resume is 10ms
     # Compute nodes that locate rapid are "compute_node1" and "compute_node2"
-    rapictld 10 compute_node1 cpmpute_node2
+    rapictld -t 10 -n computing_node1,cpmputing_node2
     ```
     ```bash
     # You can use debug message
-    RUST_LOG=debug rapictld 10 compute_node1 cpmpute_node2
+    rapictld -t 10 -n computing_node1,cpmputing_node2 -d Debug
     ```
 2. Launch rapid on all compute nodes
     ```bash
     # Launch rapid on each node
-    rapid
+    rapid -a control_node
     ```
     ```bash
     # Launch with ssh
-    ssh compute_node1 rapid
+    ssh compute_noding1 rapid -a control_node
+    # Or launch on background (But it is difficult to kill rapid)
+    ssh -f computing_node1 rapid -a control_node
     ```
     ```bash
     # You can use debug message
-    RUST_LOG=debug rapid
+    rapid -a control_node -d Debug
     ```
 3. Launch an MPI program with specifying "LD_PRELOAD"
     ```bash
@@ -63,12 +65,22 @@ Or use file sharing, such as NFS.
     mpirun -x LD_PRELOAD=/usr/local/bin/rapi.so mpi_program
     ```
 
-#### Script
+### Script
 You can use a script for launching rapid, rapictld and MPI program (with rapi).
+#### Preparation
+1. Setup rapi
+    * Install rapi.so and rapid to all computing-nodes, and add the location of them to PATH
+    * Install rapictld to the control-node, and the location of it to PATH
+2. Setup MPI
+    * Install `mpirun` to all computing-nodes
+    * Install an MPI program you use to the same location
+    * Install `hostfile` to the control-node
+3. Setup ssh
+    * Control-node can ssh to all computing-nodes with
+        * the hostname in `hostfile`
+        * no password or passphrase
+#### Launch
+Run the script on control-node
 ```bash
-script/run.sh -h hostfile -t 100 -p example_program
+script/run.sh -h hostfile -t 100 -p example_program -l log/$(date "+%Y%m%d%H%M%S").log
 ```
-* Launch rapid on all nodes written on hostfile with systemctl
-* Launch rapictld on current node with timeslice = "-t" option, node = host in hostfile.
-* Launch the specified MPI program with LD_PRELOAD = rapi.so
-
