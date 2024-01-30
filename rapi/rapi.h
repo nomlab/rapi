@@ -12,6 +12,8 @@
 enum RequestType {
     REQ_UNREGISTER = 0,
     REQ_REGISTER = 1,
+    REQ_BEGIN_COMM = 4,
+    REQ_END_COMM = 5,
 };
 
 struct Request {

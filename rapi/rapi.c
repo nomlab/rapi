@@ -87,6 +87,23 @@ int MPI_Finalize() {
     return ret;
 }
 
+int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                 void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                 MPI_Comm comm) {
+    int ret;
+    int fd;
+
+    fd = create_udp_socket();
+    send_req_to_rapid(fd, htonl(INADDR_LOOPBACK), get_rapid_port(),
+                      (struct Request){.t = REQ_BEGIN_COMM, .pid = 0});
+    ret = PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
+    send_req_to_rapid(fd, htonl(INADDR_LOOPBACK), get_rapid_port(),
+                      (struct Request){.t = REQ_END_COMM, .pid = 0});
+    close(fd);
+
+    return ret;
+}
+
 int create_udp_socket() {
     int fd;
 

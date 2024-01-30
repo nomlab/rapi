@@ -11,13 +11,15 @@ use std::{mem::size_of, net::UdpSocket, str::FromStr, thread};
 const DEFAULT_PORT: u16 = 12345;
 const DEFAULT_DLEVEL: &str = "Error";
 
-const BIND_ADDR: &str = "0.0.0.0";
+const BIND_ADDR: &str = "0.0.0.0:12345";
 const BUF_SIZE: usize = size_of::<Data>();
 
 const REQ_REGISTER: i32 = 1;
 const REQ_UNREGISTER: i32 = 0;
 const REQ_STOP: i32 = 2;
 const REQ_CONT: i32 = 3;
+const REQ_BEGIN_COMM: i32 = 4;
+const REQ_END_COMM: i32 = 5;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -78,6 +80,7 @@ fn main() -> Result<(), ()> {
                 let signal = Signal::SIGCONT;
                 send_signal(&queue, signal).unwrap();
             }
+            REQ_BEGIN_COMM | REQ_END_COMM => {}
             _ => {
                 error!("unlnown request received: {:?}", data);
                 return Err(());
