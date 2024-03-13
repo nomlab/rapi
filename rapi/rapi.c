@@ -51,6 +51,35 @@ int MPI_Init(int *argc, char ***argv) {
     return ret;
 }
 
+int MPI_Init_thread(int *argc, char ***argv, int required, int *provided) {
+    int ret;
+    pid_t pid;
+    int fd;
+
+    pid = getpid();
+    fd = create_udp_socket();
+    if (fd == -1) {
+        fprintf(stderr, "RAPI ERROR: creating socket failed\n");
+        exit(1);
+    }
+    ret = send_req_to_rapid(fd, htonl(INADDR_LOOPBACK), get_rapid_port(),
+                            (struct Request){.t = REQ_REGISTER, .pid = pid});
+    if (ret == -1) {
+        fprintf(stderr, "RAPI ERROR: sending request failed\n");
+        exit(1);
+    }
+
+    // Insert handler for SIGCONT
+    signal(SIGCONT, sigcont_handler);
+
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ct1);
+    clock_gettime(CLOCK_REALTIME, &rt1);
+
+    ret = PMPI_Init_thread(argc, argv, required, provided);
+
+    return ret;
+}
+
 int MPI_Finalize() {
     int ret;
     pid_t pid;
