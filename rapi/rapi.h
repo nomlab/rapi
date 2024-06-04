@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #define RAPID_REQUEST_SIZE 8
-#define RAPID_DEFAULT_PORT 12345
+#define RAPID_DEFAULT_PORT 8210
 
 enum RequestType {
     REQ_UNREGISTER = 0,

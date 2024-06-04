@@ -19,8 +19,8 @@ const TIMESLICE_IN_COMM: Duration = Duration::from_millis(100);
 const TIMESLICE_GUARANTEED: Duration = Duration::from_millis(400);
 const TIMESLICE_CHECK_INTERVAL: Duration = Duration::from_millis(1);
 
-const DEFAULT_PORT: u16 = 54321;
-const DEFAULT_TPORT: u16 = 12345;
+const DEFAULT_PORT: u16 = 8211;
+const DEFAULT_RAPID_PORT: u16 = 8210;
 const DEFAULT_DLEVEL: &str = "Error";
 
 const BUF_SIZE: usize = size_of::<Data>();
@@ -43,25 +43,24 @@ const FIRST_REQ: Data = Data {
 struct Args {
     /// Duration (ms) between suspending and resuming job.
     /// If timeslice < 0, turn off job switching.
-    #[arg(short, long, required = true)]
+    #[arg(short = 't', long, required = true)]
     _timeslice: i64,
 
-    /// The list of nodes to communicate with rapid.
-    /// Example: "-n localhost", "-n com1,com2", "-n com1 -n com2"
-    #[arg(short, long, required = true, value_delimiter = ',')]
-    nodes: Vec<String>,
-
-    /// Port to bind.
-    #[arg(long, default_value_t = DEFAULT_PORT)]
+    /// Port to bind
+    #[arg(short = 'p', long, default_value_t = DEFAULT_PORT)]
     port: u16,
 
-    /// Target port to send request.
-    #[arg(long, default_value_t = DEFAULT_TPORT)]
-    tport: u16,
+    /// The list of all rapid's addresses (IP address or domain).
+    /// Example: "node1, node2" or "192.168.1.2, 192.168.1.3"
+    #[arg(short = 'a', long, required = true, value_delimiter = ',')]
+    rapid_addrs: Vec<String>,
 
-    /// Debug level.
-    /// One of [Error, Warn, Info, Debug, Trace, Off].
-    #[arg(short, long, default_value_t = String::from(DEFAULT_DLEVEL))]
+    /// Port of rapid (All rapid's port must be same)
+    #[arg(short = 'P', long, default_value_t = DEFAULT_RAPID_PORT)]
+    rapid_port: u16,
+
+    /// Debug level (One of [Error, Warn, Info, Debug, Trace, Off])
+    #[arg(short = 'd', long, default_value_t = String::from(DEFAULT_DLEVEL))]
     debug: String,
 }
 
@@ -103,7 +102,13 @@ fn main() {
                     req: REQ_STOP,
                     dummy: 0,
                 };
-                send_req(&sender_socket, &stop_req, &args.nodes, args.tport).unwrap();
+                send_req(
+                    &sender_socket,
+                    &stop_req,
+                    &args.rapid_addrs,
+                    args.rapid_port,
+                )
+                .unwrap();
                 is_job_running = false;
                 instant = Instant::now();
             }
@@ -114,7 +119,13 @@ fn main() {
                     req: REQ_CONT,
                     dummy: 0,
                 };
-                send_req(&sender_socket, &cont_req, &args.nodes, args.tport).unwrap();
+                send_req(
+                    &sender_socket,
+                    &cont_req,
+                    &args.rapid_addrs,
+                    args.rapid_port,
+                )
+                .unwrap();
                 is_job_running = true;
                 instant = Instant::now();
             }
@@ -126,13 +137,13 @@ fn main() {
 fn send_req(
     socket: &UdpSocket,
     req: &Data,
-    nodes: &[String],
-    tport: u16,
+    addrs: &[String],
+    port: u16,
 ) -> Result<(), std::io::Error> {
     let buf = bincode::serialize(&req).unwrap();
-    for host in nodes.iter() {
-        debug!("Send request: {:?} to: {}", req, host);
-        socket.send_to(&buf, (host.as_str(), tport))?;
+    for addr in addrs.iter() {
+        socket.send_to(&buf, (addr.as_str(), port))?;
+        debug!("Send request: {:?} to: {}", req, addr);
     }
     Ok(())
 }
