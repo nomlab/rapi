@@ -2,10 +2,10 @@
 ![Overview](./doc/img/overview.svg)
 
 ## Summary
-This system is a Job Scheduler that works **cooperatively** with MPI programs, and consists of below three programs.
-* [rapi](./rapi) is a program that works with MPI programs using MPI profiling interface.
-* [rapid](./rapid) is a program that manages MPI programs.
-* [rapictld](./rapictld) is a program that manages all rapid.
+This system is a job scheduler that works **cooperatively** with MPI programs, and consists of below three programs.
+* [rapi](./rapi) works with MPI programs using MPI profiling interface.
+* [rapid](./rapid) manages MPI programs.
+* [rapictld](./rapictld) manages all rapid.
 
 ## How cooperative?
 1. Rapi sends MPI program information such as "whether is interactive" or "how to stop"
@@ -38,11 +38,11 @@ Or use file sharing, such as NFS.
     ```bash
     # Interval between suspend and resume is 10ms
     # Compute nodes that locate rapid are "compute_node1" and "compute_node2"
-    rapictld -t 10 -n computing_node1,cpmputing_node2
+    rapictld -t 10 -a computing_node1,cpmputing_node2
     ```
     ```bash
     # You can use debug message
-    rapictld -t 10 -n computing_node1,cpmputing_node2 -d Debug
+    rapictld -t 10 -a computing_node1,cpmputing_node2 -d Debug
     ```
 2. Launch rapid on all compute nodes
     ```bash
