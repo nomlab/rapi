@@ -19,8 +19,8 @@ const TIMESLICE_IN_COMM: Duration = Duration::from_millis(100);
 const TIMESLICE_GUARANTEED: Duration = Duration::from_millis(400);
 const TIMESLICE_CHECK_INTERVAL: Duration = Duration::from_millis(1);
 
-const DEFAULT_PORT: u16 = 54321;
-const DEFAULT_TPORT: u16 = 12345;
+const DEFAULT_PORT: u16 = 8211;
+const DEFAULT_RAPID_PORT: u16 = 8210;
 const DEFAULT_DLEVEL: &str = "Error";
 
 const BUF_SIZE: usize = size_of::<Data>();
@@ -56,8 +56,8 @@ struct Args {
     port: u16,
 
     /// Target port to send request.
-    #[arg(long, default_value_t = DEFAULT_TPORT)]
-    tport: u16,
+    #[arg(long, default_value_t = DEFAULT_RAPID_PORT)]
+    rapid_port: u16,
 
     /// Debug level.
     /// One of [Error, Warn, Info, Debug, Trace, Off].
@@ -103,7 +103,7 @@ fn main() {
                     req: REQ_STOP,
                     dummy: 0,
                 };
-                send_req(&sender_socket, &stop_req, &args.nodes, args.tport).unwrap();
+                send_req(&sender_socket, &stop_req, &args.nodes, args.rapid_port).unwrap();
                 is_job_running = false;
                 instant = Instant::now();
             }
@@ -114,7 +114,7 @@ fn main() {
                     req: REQ_CONT,
                     dummy: 0,
                 };
-                send_req(&sender_socket, &cont_req, &args.nodes, args.tport).unwrap();
+                send_req(&sender_socket, &cont_req, &args.nodes, args.rapid_port).unwrap();
                 is_job_running = true;
                 instant = Instant::now();
             }

@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{mem::size_of, net::UdpSocket, str::FromStr, thread};
 
-const DEFAULT_PORT: u16 = 12345;
+const DEFAULT_PORT: u16 = 8210;
 const DEFAULT_DLEVEL: &str = "Error";
 
-const BIND_ADDR: &str = "0.0.0.0:12345";
+const BIND_ADDR: &str = "0.0.0.0";
 const BUF_SIZE: usize = size_of::<Data>();
 
 const REQ_REGISTER: i32 = 1;
@@ -53,7 +53,7 @@ fn main() -> Result<(), ()> {
     .unwrap();
 
     let mut queue: Vec<i32> = vec![];
-    let stream = UdpSocket::bind(BIND_ADDR).unwrap();
+    let stream = UdpSocket::bind((BIND_ADDR, args.port)).unwrap();
     let mut buf: [u8; BUF_SIZE] = [0; BUF_SIZE];
 
     loop {
