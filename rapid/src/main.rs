@@ -9,6 +9,7 @@ use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{mem::size_of, net::UdpSocket, str::FromStr, thread};
 
 const DEFAULT_PORT: u16 = 8210;
+const DEFAULT_RAPICTLD_PORT: u16 = 8211;
 const DEFAULT_DLEVEL: &str = "Error";
 
 const BIND_ADDR: &str = "0.0.0.0";
@@ -24,18 +25,27 @@ const REQ_END_COMM: i32 = 5;
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    /// Address of rapictld.
-    #[arg(short, long, required = true)]
-    addr: String,
+    /// Address of rapictld (IP Address (192.168.1.2) or Dmain (rapictld.example.com))
+    #[arg(short = 'a', long, required = true)]
+    rapictld_addr: String,
 
-    /// Port to bind.
-    #[arg(long, default_value_t = DEFAULT_PORT)]
+    /// Port of rapictld
+    #[arg(short = 'P', long, default_value_t = DEFAULT_RAPICTLD_PORT)]
+    rapictld_port: u16,
+
+    /// Port to bind
+    #[arg(short = 'p', long, default_value_t = DEFAULT_PORT)]
     port: u16,
 
-    /// Debug level.
-    /// One of [Error, Warn, Info, Debug, Trace, Off].
-    #[arg(short, long, default_value_t = String::from(DEFAULT_DLEVEL))]
+    /// Debug level (One of [Error, Warn, Info, Debug, Trace, Off])
+    #[arg(short = 'd', long, default_value_t = String::from(DEFAULT_DLEVEL))]
     debug: String,
+}
+
+impl Args {
+    pub fn rapictld_socket_addr(&self) -> (&str, u16) {
+        (&self.rapictld_addr, self.rapictld_port)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -61,8 +71,8 @@ fn main() -> Result<(), ()> {
         let data: Data = bincode::deserialize(&buf).unwrap();
         debug!("Recv request: {:?}", data);
 
-        stream.send_to(&buf, &args.addr).unwrap();
-        debug!("Send request: {:?}, to: {}", data, args.addr);
+        stream.send_to(&buf, args.rapictld_socket_addr()).unwrap();
+        debug!("Send request: {:?}", data);
 
         match data.req {
             REQ_REGISTER => {
