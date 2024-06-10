@@ -4,8 +4,8 @@
 ## Summary
 This system is a job scheduler that works **cooperatively** with MPI programs, and consists of below three programs.
 * [rapi](./rapi) works with MPI programs using MPI profiling interface.
-* [rapid](./rapid) manages MPI programs.
-* [rapictld](./rapictld) manages all rapid.
+* [rapid](./rapi-daemon/src/bin/rapid) manages MPI programs.
+* [rapictld](./rapi-daemon/src/bin/rapictld) manages all rapid.
 
 ## How cooperative?
 1. Rapi sends MPI program information such as "whether is interactive" or "how to stop"
