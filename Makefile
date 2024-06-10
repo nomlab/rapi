@@ -1,4 +1,4 @@
-SUBDIRS := rapi rapid rapictld
+SUBDIRS := rapi rapi-daemon
 TARGETS := all install install-local clean
 
 SUBDIRS := $(foreach t, $(SUBDIRS), $(addsuffix /.,$t))
