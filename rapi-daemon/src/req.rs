@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Data {
+pub struct Request {
     pub req: ReqType,
     pub pid: i32,
 }

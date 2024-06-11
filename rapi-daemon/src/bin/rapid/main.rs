@@ -4,7 +4,7 @@ use nix::{
     sys::signal::{kill, Signal},
     unistd::Pid,
 };
-use rapi::req::{Data, ReqType};
+use rapi::req::{ReqType, Request};
 use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{mem::size_of, net::UdpSocket, str::FromStr, thread};
 
@@ -13,7 +13,7 @@ const DEFAULT_RAPICTLD_PORT: u16 = 8211;
 const DEFAULT_DLEVEL: &str = "Error";
 
 const BIND_ADDR: &str = "0.0.0.0";
-const BUF_SIZE: usize = size_of::<Data>();
+const BUF_SIZE: usize = size_of::<Request>();
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -55,7 +55,7 @@ fn main() -> Result<(), ()> {
 
     loop {
         stream.recv(&mut buf).unwrap();
-        let data: Data = bincode::deserialize(&buf).unwrap();
+        let data: Request = bincode::deserialize(&buf).unwrap();
         debug!("Recv request: {:?}", data);
 
         stream.send_to(&buf, args.rapictld_socket_addr()).unwrap();

@@ -1,6 +1,6 @@
 use clap::Parser;
 use log::debug;
-use rapi::req::{Data, ReqType};
+use rapi::req::{ReqType, Request};
 use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{
     mem::size_of,
@@ -23,11 +23,11 @@ const DEFAULT_PORT: u16 = 8211;
 const DEFAULT_RAPID_PORT: u16 = 8210;
 const DEFAULT_DLEVEL: &str = "Error";
 
-const BUF_SIZE: usize = size_of::<Data>();
+const BUF_SIZE: usize = size_of::<Request>();
 const BIND_ADDR: &str = "0.0.0.0";
 
 #[allow(dead_code)]
-const FIRST_REQ: Data = Data {
+const FIRST_REQ: Request = Request {
     req: ReqType::Stop,
     pid: 0,
 };
@@ -86,7 +86,7 @@ fn main() {
                 || count_in_communication.load(Ordering::Relaxed) > 0
                     && elapsed >= TIMESLICE_IN_COMM
             {
-                let stop_req = Data {
+                let stop_req = Request {
                     req: ReqType::Stop,
                     pid: 0,
                 };
@@ -103,7 +103,7 @@ fn main() {
         } else {
             #[warn(clippy::collapsible_else_if)]
             if elapsed >= TIMESLICE_IN_COMM {
-                let cont_req = Data {
+                let cont_req = Request {
                     req: ReqType::Cont,
                     pid: 0,
                 };
@@ -124,7 +124,7 @@ fn main() {
 
 fn send_req(
     socket: &UdpSocket,
-    req: &Data,
+    req: &Request,
     addrs: &[String],
     port: u16,
 ) -> Result<(), std::io::Error> {
@@ -143,7 +143,7 @@ fn recv_req_loop(
     let mut buf: [u8; BUF_SIZE] = [0; BUF_SIZE];
     loop {
         socket.recv(&mut buf)?;
-        let req: Data = bincode::deserialize(&buf).unwrap();
+        let req: Request = bincode::deserialize(&buf).unwrap();
         match req.req {
             ReqType::CommBegin => {
                 count_in_communication.fetch_add(1, Ordering::Relaxed);
@@ -158,7 +158,7 @@ fn recv_req_loop(
 }
 
 #[allow(dead_code)]
-fn reverse_request(data: &mut Data) -> Result<(), ()> {
+fn reverse_request(data: &mut Request) -> Result<(), ()> {
     match data.req {
         ReqType::Stop => data.req = ReqType::Cont,
         ReqType::Cont => data.req = ReqType::Stop,
