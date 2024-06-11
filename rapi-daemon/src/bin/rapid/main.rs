@@ -1,3 +1,6 @@
+mod args;
+
+use args::Args;
 use clap::Parser;
 use log::debug;
 use nix::{
@@ -12,32 +15,6 @@ use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{mem::size_of, net::UdpSocket, str::FromStr, thread};
 
 const BUF_SIZE: usize = size_of::<Request>();
-
-#[derive(Parser, Debug)]
-#[command(author, version, about)]
-struct Args {
-    /// Address of rapictld (IP Address (192.168.1.2) or Dmain (rapictld.example.com))
-    #[arg(short = 'a', long, required = true)]
-    rapictld_addr: String,
-
-    /// Port of rapictld
-    #[arg(short = 'P', long, default_value_t = DEFAULT_RAPICTLD_PORT)]
-    rapictld_port: u16,
-
-    /// Port to bind
-    #[arg(short = 'p', long, default_value_t = DEFAULT_RAPID_PORT)]
-    port: u16,
-
-    /// Debug level (One of [Error, Warn, Info, Debug, Trace, Off])
-    #[arg(short = 'd', long, default_value_t = String::from(DEFAULT_DLEVEL))]
-    debug: String,
-}
-
-impl Args {
-    pub fn rapictld_socket_addr(&self) -> (&str, u16) {
-        (&self.rapictld_addr, self.rapictld_port)
-    }
-}
 
 fn main() -> Result<(), ()> {
     let args = Args::parse();
