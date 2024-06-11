@@ -1,6 +1,9 @@
 use clap::Parser;
 use log::debug;
-use rapi::req::{ReqType, Request};
+use rapi::{
+    req::{ReqType, Request},
+    *, // import some consts
+};
 use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{
     mem::size_of,
@@ -19,12 +22,7 @@ const TIMESLICE_IN_COMM: Duration = Duration::from_millis(100);
 const TIMESLICE_GUARANTEED: Duration = Duration::from_millis(400);
 const TIMESLICE_CHECK_INTERVAL: Duration = Duration::from_millis(1);
 
-const DEFAULT_PORT: u16 = 8211;
-const DEFAULT_RAPID_PORT: u16 = 8210;
-const DEFAULT_DLEVEL: &str = "Error";
-
 const BUF_SIZE: usize = size_of::<Request>();
-const BIND_ADDR: &str = "0.0.0.0";
 
 #[allow(dead_code)]
 const FIRST_REQ: Request = Request {
@@ -41,7 +39,7 @@ struct Args {
     _timeslice: i64,
 
     /// Port to bind
-    #[arg(short = 'p', long, default_value_t = DEFAULT_PORT)]
+    #[arg(short = 'p', long, default_value_t = DEFAULT_RAPICTLD_PORT)]
     port: u16,
 
     /// The list of all rapid's addresses (IP address or domain).

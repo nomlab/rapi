@@ -4,15 +4,13 @@ use nix::{
     sys::signal::{kill, Signal},
     unistd::Pid,
 };
-use rapi::req::{ReqType, Request};
+use rapi::{
+    req::{ReqType, Request},
+    *, // import some consts
+};
 use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{mem::size_of, net::UdpSocket, str::FromStr, thread};
 
-const DEFAULT_PORT: u16 = 8210;
-const DEFAULT_RAPICTLD_PORT: u16 = 8211;
-const DEFAULT_DLEVEL: &str = "Error";
-
-const BIND_ADDR: &str = "0.0.0.0";
 const BUF_SIZE: usize = size_of::<Request>();
 
 #[derive(Parser, Debug)]
@@ -27,7 +25,7 @@ struct Args {
     rapictld_port: u16,
 
     /// Port to bind
-    #[arg(short = 'p', long, default_value_t = DEFAULT_PORT)]
+    #[arg(short = 'p', long, default_value_t = DEFAULT_RAPID_PORT)]
     port: u16,
 
     /// Debug level (One of [Error, Warn, Info, Debug, Trace, Off])
