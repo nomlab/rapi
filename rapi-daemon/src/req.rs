@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
+use std::ffi::c_int;
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Request {
     pub req: ReqType,
-    pub pid: i32,
+    pub pid: c_int,
 }
 
 #[repr(C)]
