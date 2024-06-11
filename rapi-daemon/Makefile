@@ -9,9 +9,11 @@ all:
 
 install: all
 	$(INSTALL) target/release/rapid $(INSTALL_DIR)
+	$(INSTALL) target/release/rapictld $(INSTALL_DIR)
 
 install-local: all
 	$(INSTALL) target/release/rapid $(INSTALL_LOCAL_DIR)
+	$(INSTALL) target/release/rapictld $(INSTALL_LOCAL_DIR)
 
 clean:
 	cargo clean

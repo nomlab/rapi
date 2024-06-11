@@ -1,6 +1,12 @@
+mod args;
+
+use args::Args;
 use clap::Parser;
 use log::debug;
-use serde::{Deserialize, Serialize};
+use rapi::{
+    req::{ReqType, Request},
+    *, // import some consts
+};
 use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{
     mem::size_of,
@@ -19,56 +25,13 @@ const TIMESLICE_IN_COMM: Duration = Duration::from_millis(100);
 const TIMESLICE_GUARANTEED: Duration = Duration::from_millis(400);
 const TIMESLICE_CHECK_INTERVAL: Duration = Duration::from_millis(1);
 
-const DEFAULT_PORT: u16 = 8211;
-const DEFAULT_RAPID_PORT: u16 = 8210;
-const DEFAULT_DLEVEL: &str = "Error";
+const BUF_SIZE: usize = size_of::<Request>();
 
-const BUF_SIZE: usize = size_of::<Data>();
-const BIND_ADDR: &str = "0.0.0.0";
-
-const REQ_UNREGISTER: i32 = 0;
-const REQ_REGISTER: i32 = 1;
-const REQ_STOP: i32 = 2;
-const REQ_CONT: i32 = 3;
-const REQ_BEGIN_COMM: i32 = 4;
-const REQ_END_COMM: i32 = 5;
-
-const FIRST_REQ: Data = Data {
-    req: REQ_STOP,
-    dummy: 0,
+#[allow(dead_code)]
+const FIRST_REQ: Request = Request {
+    req: ReqType::Stop,
+    pid: 0,
 };
-
-#[derive(Parser, Debug)]
-#[command(author, version, about)]
-struct Args {
-    /// Duration (ms) between suspending and resuming job.
-    /// If timeslice < 0, turn off job switching.
-    #[arg(short = 't', long, required = true)]
-    _timeslice: i64,
-
-    /// Port to bind
-    #[arg(short = 'p', long, default_value_t = DEFAULT_PORT)]
-    port: u16,
-
-    /// The list of all rapid's addresses (IP address or domain).
-    /// Example: "node1, node2" or "192.168.1.2, 192.168.1.3"
-    #[arg(short = 'a', long, required = true, value_delimiter = ',')]
-    rapid_addrs: Vec<String>,
-
-    /// Port of rapid (All rapid's port must be same)
-    #[arg(short = 'P', long, default_value_t = DEFAULT_RAPID_PORT)]
-    rapid_port: u16,
-
-    /// Debug level (One of [Error, Warn, Info, Debug, Trace, Off])
-    #[arg(short = 'd', long, default_value_t = String::from(DEFAULT_DLEVEL))]
-    debug: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Data {
-    req: i32,
-    dummy: i32,
-}
 
 fn main() {
     let args = Args::parse();
@@ -98,9 +61,9 @@ fn main() {
                 || count_in_communication.load(Ordering::Relaxed) > 0
                     && elapsed >= TIMESLICE_IN_COMM
             {
-                let stop_req = Data {
-                    req: REQ_STOP,
-                    dummy: 0,
+                let stop_req = Request {
+                    req: ReqType::Stop,
+                    pid: 0,
                 };
                 send_req(
                     &sender_socket,
@@ -115,9 +78,9 @@ fn main() {
         } else {
             #[warn(clippy::collapsible_else_if)]
             if elapsed >= TIMESLICE_IN_COMM {
-                let cont_req = Data {
-                    req: REQ_CONT,
-                    dummy: 0,
+                let cont_req = Request {
+                    req: ReqType::Cont,
+                    pid: 0,
                 };
                 send_req(
                     &sender_socket,
@@ -136,7 +99,7 @@ fn main() {
 
 fn send_req(
     socket: &UdpSocket,
-    req: &Data,
+    req: &Request,
     addrs: &[String],
     port: u16,
 ) -> Result<(), std::io::Error> {
@@ -155,12 +118,12 @@ fn recv_req_loop(
     let mut buf: [u8; BUF_SIZE] = [0; BUF_SIZE];
     loop {
         socket.recv(&mut buf)?;
-        let req: Data = bincode::deserialize(&buf).unwrap();
+        let req: Request = bincode::deserialize(&buf).unwrap();
         match req.req {
-            REQ_BEGIN_COMM => {
+            ReqType::CommBegin => {
                 count_in_communication.fetch_add(1, Ordering::Relaxed);
             }
-            REQ_END_COMM => {
+            ReqType::CommEnd => {
                 count_in_communication.fetch_sub(1, Ordering::Relaxed);
             }
             _ => {}
@@ -169,10 +132,11 @@ fn recv_req_loop(
     }
 }
 
-fn reverse_request(data: &mut Data) -> Result<(), ()> {
+#[allow(dead_code)]
+fn reverse_request(data: &mut Request) -> Result<(), ()> {
     match data.req {
-        REQ_STOP => data.req = REQ_CONT,
-        REQ_CONT => data.req = REQ_STOP,
+        ReqType::Stop => data.req = ReqType::Cont,
+        ReqType::Cont => data.req = ReqType::Stop,
         _ => return Err(()),
     }
     Ok(())
