@@ -1,6 +1,6 @@
 use clap::Parser;
 use log::debug;
-use serde::{Deserialize, Serialize};
+use rapi::req::{Data, ReqType};
 use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{
     mem::size_of,
@@ -26,16 +26,10 @@ const DEFAULT_DLEVEL: &str = "Error";
 const BUF_SIZE: usize = size_of::<Data>();
 const BIND_ADDR: &str = "0.0.0.0";
 
-const REQ_UNREGISTER: i32 = 0;
-const REQ_REGISTER: i32 = 1;
-const REQ_STOP: i32 = 2;
-const REQ_CONT: i32 = 3;
-const REQ_BEGIN_COMM: i32 = 4;
-const REQ_END_COMM: i32 = 5;
-
+#[allow(dead_code)]
 const FIRST_REQ: Data = Data {
-    req: REQ_STOP,
-    dummy: 0,
+    req: ReqType::Stop,
+    pid: 0,
 };
 
 #[derive(Parser, Debug)]
@@ -62,12 +56,6 @@ struct Args {
     /// Debug level (One of [Error, Warn, Info, Debug, Trace, Off])
     #[arg(short = 'd', long, default_value_t = String::from(DEFAULT_DLEVEL))]
     debug: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Data {
-    req: i32,
-    dummy: i32,
 }
 
 fn main() {
@@ -99,8 +87,8 @@ fn main() {
                     && elapsed >= TIMESLICE_IN_COMM
             {
                 let stop_req = Data {
-                    req: REQ_STOP,
-                    dummy: 0,
+                    req: ReqType::Stop,
+                    pid: 0,
                 };
                 send_req(
                     &sender_socket,
@@ -116,8 +104,8 @@ fn main() {
             #[warn(clippy::collapsible_else_if)]
             if elapsed >= TIMESLICE_IN_COMM {
                 let cont_req = Data {
-                    req: REQ_CONT,
-                    dummy: 0,
+                    req: ReqType::Cont,
+                    pid: 0,
                 };
                 send_req(
                     &sender_socket,
@@ -157,10 +145,10 @@ fn recv_req_loop(
         socket.recv(&mut buf)?;
         let req: Data = bincode::deserialize(&buf).unwrap();
         match req.req {
-            REQ_BEGIN_COMM => {
+            ReqType::CommBegin => {
                 count_in_communication.fetch_add(1, Ordering::Relaxed);
             }
-            REQ_END_COMM => {
+            ReqType::CommEnd => {
                 count_in_communication.fetch_sub(1, Ordering::Relaxed);
             }
             _ => {}
@@ -169,10 +157,11 @@ fn recv_req_loop(
     }
 }
 
+#[allow(dead_code)]
 fn reverse_request(data: &mut Data) -> Result<(), ()> {
     match data.req {
-        REQ_STOP => data.req = REQ_CONT,
-        REQ_CONT => data.req = REQ_STOP,
+        ReqType::Stop => data.req = ReqType::Cont,
+        ReqType::Cont => data.req = ReqType::Stop,
         _ => return Err(()),
     }
     Ok(())

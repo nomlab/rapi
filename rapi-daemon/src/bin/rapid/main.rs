@@ -1,10 +1,10 @@
 use clap::Parser;
-use log::{debug, error};
+use log::debug;
 use nix::{
     sys::signal::{kill, Signal},
     unistd::Pid,
 };
-use serde::{Deserialize, Serialize};
+use rapi::req::{Data, ReqType};
 use simplelog::{Config, LevelFilter, SimpleLogger};
 use std::{mem::size_of, net::UdpSocket, str::FromStr, thread};
 
@@ -14,13 +14,6 @@ const DEFAULT_DLEVEL: &str = "Error";
 
 const BIND_ADDR: &str = "0.0.0.0";
 const BUF_SIZE: usize = size_of::<Data>();
-
-const REQ_REGISTER: i32 = 1;
-const REQ_UNREGISTER: i32 = 0;
-const REQ_STOP: i32 = 2;
-const REQ_CONT: i32 = 3;
-const REQ_BEGIN_COMM: i32 = 4;
-const REQ_END_COMM: i32 = 5;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -48,12 +41,6 @@ impl Args {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Data {
-    req: i32,
-    pid: i32,
-}
-
 fn main() -> Result<(), ()> {
     let args = Args::parse();
     SimpleLogger::init(
@@ -75,26 +62,22 @@ fn main() -> Result<(), ()> {
         debug!("Send request: {:?}", data);
 
         match data.req {
-            REQ_REGISTER => {
+            ReqType::Register => {
                 queue.push(data.pid);
             }
-            REQ_UNREGISTER => {
+            ReqType::Unregister => {
                 let pos = queue.iter().position(|e| *e == data.pid).unwrap();
                 queue.remove(pos);
             }
-            REQ_STOP => {
+            ReqType::Stop => {
                 let signal = Signal::SIGSTOP;
                 send_signal(&queue, signal).unwrap();
             }
-            REQ_CONT => {
+            ReqType::Cont => {
                 let signal = Signal::SIGCONT;
                 send_signal(&queue, signal).unwrap();
             }
-            REQ_BEGIN_COMM | REQ_END_COMM => {}
-            _ => {
-                error!("unlnown request received: {:?}", data);
-                return Err(());
-            }
+            ReqType::CommBegin | ReqType::CommEnd => {}
         };
     }
 }
