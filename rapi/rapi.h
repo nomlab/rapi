@@ -12,6 +12,8 @@
 enum RequestType {
     REQ_UNREGISTER = 0,
     REQ_REGISTER = 1,
+    REQ_STOP = 2,
+    REQ_CONT = 3,
     REQ_BEGIN_COMM = 4,
     REQ_END_COMM = 5,
 };
